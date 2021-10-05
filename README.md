@@ -2,6 +2,13 @@
 
 Based on this tutorial: ["Creating a ClickHouse cluster - Part I: Sharding"](https://dev.to/zergon321/creating-a-clickhouse-cluster-part-i-sharding-4j20)
 
+The final cluster has:
+- 1 cluster, with 2 shards
+- Each shard has 2 replica server
+- clickhouse-servers:
+    - Master node run at 127.0.0.1, ports 9000
+    - Subordinate/worker nodes run at 127.0.0.1, ports 9001-9004
+
 ## Cluster Deployment
 
 Now we are ready to launch the system. I will do it using `docker-compose`:
@@ -295,3 +302,22 @@ Table replication strengthens fault tolerance of the cluster.
 # References
 
 - [How to Create Python 3 Virtual Environment on Ubuntu 20.04](https://linoxide.com/how-to-create-python-virtual-environment-on-ubuntu-20-04/)
+- Other [tutorial for setup clickhouse server](https://github.com/vejed/clickhouse-cluster)
+
+---
+
+## TODO
+
+- Improve `docker-compose.yml`:
+    - `ch-zookeeper`: add one more port
+    - `ch-master` and `ch-sub-{1-4}:
+        - add `hostname`
+        - add `ulimits`
+- Improve node configs
+    - Move all config files to a new directory named `config`
+    - Break the current one big config file into multiple configs. Example of container `volumes`:
+        - `./config/clickhouse_config.xml:/etc/clickhouse-server/config.xml`
+        - `./config/clickhouse_metrika.xml:/etc/clickhouse-server/metrika.xml`
+        - `./config/macros/macros-01.xml:/etc/clickhouse-server/config.d/macros.xml`
+        - `./config/users.xml:/etc/clickhouse-server/users.xml`
+        - `./data/server-01:/var/lib/clickhouse`
