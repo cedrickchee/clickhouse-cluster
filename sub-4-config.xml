@@ -122,6 +122,18 @@
          Values for substitutions are specified in /yandex/name_of_substitution elements in that file.
       -->
 
+    <zookeeper>
+        <node index="1">
+            <host>ch-zookeeper</host>
+            <port>2181</port>
+        </node>
+    </zookeeper>
+
+    <macros>
+        <shard>02</shard>
+        <replica>ch-sub-4</replica>
+    </macros>
+
 
     <!-- Reloading interval for embedded dictionaries, in seconds. Default: 3600. -->
     <builtin_dictionaries_reload_interval>3600</builtin_dictionaries_reload_interval>

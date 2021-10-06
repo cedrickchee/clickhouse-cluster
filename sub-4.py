@@ -2,7 +2,7 @@ from clickhouse_driver import Client
 from datetime import datetime
 
 if __name__ == "__main__":
-    client = Client("127.0.0.1", port="9003")
+    client = Client("127.0.0.1", port="9004")
 
     client.execute("CREATE DATABASE IF NOT EXISTS billing")
 
@@ -15,8 +15,8 @@ if __name__ == "__main__":
                       ORDER BY timestamp''')
 
     client.execute("INSERT INTO billing.transactions (timestamp, currency, value) VALUES", \
-        [(datetime.utcnow(), "elasticity", 38.9), (datetime.utcnow(), "gravity", 27.2), \
-            (datetime.utcnow(), "density", 19.8)])
+        [(datetime.utcnow(), "transitivity", 38.9), (datetime.utcnow(), "velocity", 27.2), \
+            (datetime.utcnow(), "ferocity", 19.8)])
     
     data = client.execute("SELECT * FROM billing.transactions")
 

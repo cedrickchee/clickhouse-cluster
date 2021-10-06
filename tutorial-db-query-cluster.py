@@ -19,14 +19,12 @@ if __name__ == "__main__":
     for sub in subs:
         client = Client(sub[0], port=sub[1])
 
-        # data = client.execute("SELECT * FROM db.entries")
-        data = client.execute("SELECT * FROM billing.transactions")
+        data = client.execute("SELECT * FROM tutorial.hits_v1")
         print("SUB port:", sub[1])
         print_data(data)
     
     client = Client(master[0], port=master[1])
 
-    # data = client.execute("SELECT * FROM db.entries")
-    data = client.execute("SELECT * FROM billing.transactions")
+    data = client.execute("SELECT * FROM tutorial.hits_v1")
     print("MASTER port:", master[1])
     print_data(data)

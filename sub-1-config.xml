@@ -95,7 +95,7 @@
 
     <!-- Directory with user provided files that are accessible by 'file' table function. -->
     <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>
-
+    
     <!-- Path to configuration file with users, access rights, profiles of settings, quotas. -->
     <users_config>users.xml</users_config>
 
@@ -116,38 +116,6 @@
     -->
     <!-- <timezone>Europe/Moscow</timezone> -->
 
-    <!-- Configuration of clusters that could be used in Distributed tables.
-         https://clickhouse.yandex/reference_en.html#Distributed
-      -->
-
-    <!-- Two shards with two replicas for each one. -->
-    <remote_servers>
-        <example_cluster>
-            <shard>
-                <internal_replication>true</internal_replication>
-                <replica>
-                    <host>ch-sub-1</host>
-                    <port>9000</port>
-                </replica>
-                <replica>
-                    <host>ch-sub-2</host>
-                    <port>9000</port>
-                </replica>
-            </shard>
-            <shard>
-                <internal_replication>true</internal_replication>
-                <replica>
-                    <host>ch-sub-3</host>
-                    <port>9000</port>
-                </replica>
-                <replica>
-                    <host>ch-sub-4</host>
-                    <port>9000</port>
-                </replica>
-            </shard>
-        </example_cluster>
-    </remote_servers>
-
 
     <!-- If element has 'incl' attribute, then for it's value will be used corresponding substitution from another file.
          By default, path to file with substitutions is /etc/metrika.xml. It could be changed in config in 'include_from' element.
@@ -160,6 +128,12 @@
             <port>2181</port>
         </node>
     </zookeeper>
+
+    <macros>
+        <shard>01</shard>
+        <replica>ch-sub-1</replica>
+    </macros>
+
 
     <!-- Reloading interval for embedded dictionaries, in seconds. Default: 3600. -->
     <builtin_dictionaries_reload_interval>3600</builtin_dictionaries_reload_interval>
@@ -288,7 +262,7 @@
             </retention>
         </default>
     </graphite_rollup_example>
-
+    
     <!-- Directory in <clickhouse-path> containing schema files for various input formats.
          The directory will be created if it doesn't exist.
       -->

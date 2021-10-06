@@ -2,6 +2,13 @@
 
 Based on this tutorial: ["Creating a ClickHouse cluster - Part I: Sharding"](https://dev.to/zergon321/creating-a-clickhouse-cluster-part-i-sharding-4j20)
 
+The final cluster has:
+- 1 cluster, with 2 shards
+- Each shard has 2 replica server
+- clickhouse-servers:
+    - Master node run at 127.0.0.1, ports 9000
+    - Subordinate/worker nodes run at 127.0.0.1, ports 9001-9004
+
 ## Cluster Deployment
 
 Now we are ready to launch the system. I will do it using `docker-compose`:
@@ -183,6 +190,134 @@ Ok.
 
 If everything has been set up properly, you'll see all the data you sent to each shard.
 
+Tear down cluster
+
+```sh
+# also remove volumes
+$ docker-compose down -v
+```
+
+## Part 2: Enable Replication
+
+This part is based on this article: ["Creating a ClickHouse cluster - Part II: Replication"](https://dev.to/zergon321/creating-a-clickhouse-cluster-part-ii-replication-23mc)
+
+In the previous set up, we run ClickHouse in cluster mode using only sharding.
+It's enough for load distribution, but we also need to ensure fault tolerance via replication.
+
+### ZooKeeper
+
+To enable native replication ZooKeeper is required.
+
+(... see the article ...)
+
+### Cluster Configuration
+
+I will use 1 master with 2 shards, 2 replicas for each shard.
+
+So, we are going to build a 2(shard) x 2(replica) = 6 node ClickHouse cluster.
+
+Here's the deployments configuration:
+
+(... see the article ...)
+
+_The above configuration creates a 7 nodes cluster (+1 for ZooKeeper node)._
+
+### Cluster Deployment
+
+After all the config files are set up, we can finally use scripts to create a cluster and run it.
+
+```sh
+$ docker-compose up
+```
+
+When all the database nodes are up and running, we should first execute our Python scripts for subordinate nodes.
+All of them look like this:
+
+```python
+# sub-1.py
+
+from clickhouse_driver import Client
+from datetime import datetime
+
+if __name__ == "__main__":
+    client = Client("127.0.0.1", port="9001")
+
+    client.execute("CREATE DATABASE IF NOT EXISTS billing")
+
+    client.execute(r'''CREATE TABLE IF NOT EXISTS billing.transactions(
+                      timestamp DateTime,
+                      currency String,
+                      value Float64)
+                      ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/billing.transactions', '{replica}')
+                      PARTITION BY currency
+                      ORDER BY timestamp''')
+```
+
+As you can see, the subordinate table now uses `ReplicatedMergeTree` engine.
+Its constructor takes the path to the table records in ZooKeeper as the first parameter 
+and the replica name as the second parameter.
+The path to the table in ZooKeeper should be unique.
+All the parameters in `{}` are taken from the aforementioned macros section of the replica config file.
+
+```sh
+$ python sub-1.py
+$ python sub-2.py
+$ python sub-3.py
+$ python sub-4.py
+```
+
+When all the subordinate tables are created, it's time to create a master table.
+There's no difference from the previous case when only sharding was utilized:
+
+```python
+from clickhouse_driver import Client
+from datetime import datetime
+
+if __name__ == "__main__":
+    client = Client("127.0.0.1", port="9000")
+
+    client.execute("CREATE DATABASE IF NOT EXISTS billing")
+
+    client.execute('''CREATE TABLE IF NOT EXISTS billing.transactions(
+                      timestamp DateTime,
+                      currency String,
+                      value Float64)
+                      ENGINE = Distributed(example_cluster, billing, transactions, rand())''')
+```
+
+```sh
+$ python master.py
+```
+
+Query distributed tables (subordinate tables and master table):
+
+```sh
+$ python query-cluster.py
+```
+
+If you set up all the things properly, you will get a working ClickHouse cluster with replication enabled.
+The shard is alive if at least one of its replicas is up.
+Table replication strengthens fault tolerance of the cluster.
+
 # References
 
 - [How to Create Python 3 Virtual Environment on Ubuntu 20.04](https://linoxide.com/how-to-create-python-virtual-environment-on-ubuntu-20-04/)
+- Other [tutorial for setup clickhouse server](https://github.com/vejed/clickhouse-cluster)
+
+---
+
+## TODO
+
+- Improve `docker-compose.yml`:
+    - `ch-zookeeper`: add one more port
+    - `ch-master` and `ch-sub-{1-4}:
+        - add `hostname`
+        - add `ulimits`
+- Improve node configs
+    - Move all config files to a new directory named `config`
+    - Break the current one big config file into multiple configs. Example of container `volumes`:
+        - `./config/clickhouse_config.xml:/etc/clickhouse-server/config.xml`
+        - `./config/clickhouse_metrika.xml:/etc/clickhouse-server/metrika.xml`
+        - `./config/macros/macros-01.xml:/etc/clickhouse-server/config.d/macros.xml`
+        - `./config/users.xml:/etc/clickhouse-server/users.xml`
+        - `./data/server-01:/var/lib/clickhouse`
